@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-cinzel: "Cinzel Decorative", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+@layer utilities {
+  .text-glow-red {
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.6), 0 0 80px rgba(255, 0, 0, 0.6);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 10px rgba(0, 150, 255, 0.8), 0 0 20px rgba(0, 150, 255, 0.8), 0 0 40px rgba(0, 150, 255, 0.6), 0 0 80px rgba(0, 150, 255, 0.6);
+  }
+  .box-glow-blue {
+    box-shadow: 0 0 15px rgba(0, 150, 255, 0.5), inset 0 0 10px rgba(0, 150, 255, 0.3);
+  }
+  .box-glow-red {
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5), inset 0 0 10px rgba(255, 0, 0, 0.3);
+  }
+}
+
+/* VHS Noise */
+.vhs-noise {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200vh;
+  background: transparent url('http://assets.iceable.com/img/noise-transparent.png') repeat 0 0;
+  background-repeat: repeat;
+  animation: noiseAnimation .2s infinite;
+  opacity: .3;
+  visibility: visible;
+  pointer-events: none;
+}
+
+@keyframes noiseAnimation {
+    0% { transform: translate(0,0) }
+    10% { transform: translate(-5%,-5%) }
+    20% { transform: translate(-10%,5%) }
+    30% { transform: translate(5%,-10%) }
+    40% { transform: translate(-5%,15%) }
+    50% { transform: translate(-10%,5%) }
+    60% { transform: translate(15%,0) }
+    70% { transform: translate(0,10%) }
+    80% { transform: translate(-15%,0) }
+    90% { transform: translate(10%,5%) }
+    100% { transform: translate(5%,0) }
+}
+
+/* Lightning */
+.lightning-flash {
+  animation: flash 10s infinite;
+}
+
+@keyframes flash {
+  0%, 95%, 98% { opacity: 0; }
+  96%, 99% { opacity: 0.8; }
+  97%, 100% { opacity: 0.2; }
+}
+
+/* Float Animation for Particles */
+@keyframes float {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+}
