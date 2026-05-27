@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { playSelectSound, playDeselectSound, playSuccessSound, playVictorySound } from '../utils/audio';
+
 
 const GRID_SIZE = 15;
 // The word "TRAININGANDPLACEMENTCELL" is 24 characters long and cannot fit in a 15x15 grid.
 // It has been split into 'TRAINING', 'PLACEMENT', and 'CELL' to accommodate the requested 15x15 grid size.
 const WORDS_TO_PLACE = [
-  'ANIKSS', 'NASH', 'HARISS', 'VENKY', 'SID', 'MAHENDRA', 
-  'RIVERATOWN', 'MANIT', 'UPPERLAKE', 'TEKRI', 'LRC', 'NTB', 
-  'DBMALL', 'CHARLOTTE', 'MIMANSA', 'SANCHI', 
-  'TRAINING', 'PLACEMENT', 'CELL'
+  'ANIKSS', 'NASH', 'HARISS', 'VENKY', 'SID', 'MAHENDRA',
+  'RIVERATOWN', 'MANIT', 'UPPERLAKE', 'TEKRI', 'LRCANDNTB', 'DBMALL', 'CHARLOTTE', 'MIMANSA', 'SANCHI',
+  'TPANDC'
 ];
 
 const DIRS = [
@@ -19,7 +20,7 @@ const DIRS = [
 function generateWordSearch() {
   let grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(''));
   let placements = [];
-  
+
   for (let word of WORDS_TO_PLACE) {
     let placed = false;
     let attempts = 0;
@@ -28,25 +29,25 @@ function generateWordSearch() {
       const dir = DIRS[Math.floor(Math.random() * DIRS.length)];
       const startR = Math.floor(Math.random() * GRID_SIZE);
       const startC = Math.floor(Math.random() * GRID_SIZE);
-      
+
       let canPlace = true;
       let cells = [];
       for (let i = 0; i < word.length; i++) {
         const r = startR + i * dir[0];
         const c = startC + i * dir[1];
-        
+
         if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) {
           canPlace = false;
           break;
         }
-        
+
         if (grid[r][c] !== '' && grid[r][c] !== word[i]) {
           canPlace = false;
           break;
         }
         cells.push({ r, c });
       }
-      
+
       if (canPlace) {
         cells.forEach((cell, i) => {
           grid[cell.r][cell.c] = word[i];
@@ -59,7 +60,7 @@ function generateWordSearch() {
       return null; // Failed to place a word, triggers regeneration
     }
   }
-  
+
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
@@ -68,7 +69,7 @@ function generateWordSearch() {
       }
     }
   }
-  
+
   return { grid, placements };
 }
 
@@ -78,6 +79,9 @@ export default function WordFinder() {
   const [foundWords, setFoundWords] = useState([]);
   const [foundCells, setFoundCells] = useState([]);
   const [isWon, setIsWon] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('sound_enabled') !== 'false';
+  });
 
   useEffect(() => {
     let data = null;
@@ -89,15 +93,18 @@ export default function WordFinder() {
 
   useEffect(() => {
     if (!gameData) return;
-    
+
     for (const placement of gameData.placements) {
       if (!foundWords.includes(placement.word)) {
         if (placement.cells.length === selectedCells.length) {
-          const isMatch = placement.cells.every(pc => 
+          const isMatch = placement.cells.every(pc =>
             selectedCells.some(sc => sc.r === pc.r && sc.c === pc.c)
           );
-          
+
           if (isMatch) {
+            if (soundEnabled) {
+              playSuccessSound();
+            }
             setFoundWords(prev => [...prev, placement.word]);
             setFoundCells(prev => {
               const newFound = [...prev];
@@ -109,29 +116,36 @@ export default function WordFinder() {
               return newFound;
             });
             setSelectedCells([]);
-            break; 
+            break;
           }
         }
       }
     }
-  }, [selectedCells, gameData, foundWords]);
+  }, [selectedCells, gameData, foundWords, soundEnabled]);
 
   useEffect(() => {
     if (foundWords.length === WORDS_TO_PLACE.length && WORDS_TO_PLACE.length > 0) {
       setIsWon(true);
+      if (soundEnabled) {
+        playVictorySound();
+      }
       localStorage.setItem('game_word_finder_completed', 'true');
     }
-  }, [foundWords]);
+  }, [foundWords, soundEnabled]);
 
   const toggleCell = (r, c) => {
-    setSelectedCells(prev => {
-      const isSelected = prev.some(cell => cell.r === r && cell.c === c);
-      if (isSelected) {
-        return prev.filter(cell => cell.r !== r || cell.c !== c);
-      } else {
-        return [...prev, { r, c }];
+    const isSelected = selectedCells.some(cell => cell.r === r && cell.c === c);
+    if (isSelected) {
+      if (soundEnabled) {
+        playDeselectSound();
       }
-    });
+      setSelectedCells(prev => prev.filter(cell => cell.r !== r || cell.c !== c));
+    } else {
+      if (soundEnabled) {
+        playSelectSound();
+      }
+      setSelectedCells(prev => [...prev, { r, c }]);
+    }
   };
 
   const foundSet = useMemo(() => new Set(foundCells.map(c => `${c.r},${c.c}`)), [foundCells]);
@@ -143,7 +157,28 @@ export default function WordFinder() {
 
   return (
     <div className="min-h-screen bg-[#0a0000] text-red-600 font-cinzel flex flex-col items-center py-12 px-4 selection:bg-red-900 selection:text-white relative overflow-hidden">
-      
+
+      {/* Sound Toggle Button */}
+      <button
+        onClick={() => {
+          const newSound = !soundEnabled;
+          setSoundEnabled(newSound);
+          localStorage.setItem('sound_enabled', String(newSound));
+        }}
+        className="absolute top-6 right-6 z-30 p-3 rounded-full border border-red-800/60 bg-black/50 text-red-500 hover:text-red-400 hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all duration-300 backdrop-blur-sm focus:outline-none"
+        title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
+      >
+        {soundEnabled ? (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+          </svg>
+        )}
+      </button>
+
       {/* Eerie Background Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-900/10 blur-[100px] rounded-full mix-blend-screen animate-pulse"></div>
@@ -159,26 +194,26 @@ export default function WordFinder() {
         <h1 className="text-4xl md:text-6xl font-bold mb-4 uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-red-500 to-red-800 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] text-center">
           Word Finder
         </h1>
-        
+
         <p className="text-xl md:text-2xl mb-10 text-red-400 drop-shadow-[0_0_5px_rgba(220,38,38,0.5)] tracking-widest text-center">
           Words Remaining: {WORDS_TO_PLACE.length - foundWords.length}
         </p>
 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 w-full justify-center items-start">
-          
+
           {/* Game Grid */}
           <div className="bg-black/60 p-3 md:p-5 rounded-xl border border-red-900/50 shadow-[0_0_40px_rgba(220,38,38,0.15)] backdrop-blur-sm">
-            <div 
+            <div
               className="grid gap-[2px] md:gap-1"
               style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
             >
-              {gameData.grid.map((row, r) => 
+              {gameData.grid.map((row, r) =>
                 row.map((letter, c) => {
                   const isFound = foundSet.has(`${r},${c}`);
                   const isSelected = selectedSet.has(`${r},${c}`);
-                  
+
                   let cellClasses = 'text-red-500 hover:bg-red-900/40 hover:text-red-300 border border-transparent hover:border-red-900/50';
-                  
+
                   if (isSelected && isFound) {
                     cellClasses = 'bg-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.9)] border border-red-300 z-10';
                   } else if (isFound) {
@@ -214,13 +249,12 @@ export default function WordFinder() {
               {WORDS_TO_PLACE.map(word => {
                 const isFound = foundWords.includes(word);
                 return (
-                  <div 
+                  <div
                     key={word}
-                    className={`text-sm md:text-base tracking-widest transition-all duration-700 font-bold ${
-                      isFound 
-                        ? 'line-through text-red-900/70 scale-95' 
-                        : 'text-red-400 drop-shadow-[0_0_5px_rgba(220,38,38,0.4)]'
-                    }`}
+                    className={`text-sm md:text-base tracking-widest transition-all duration-700 font-bold ${isFound
+                      ? 'line-through text-red-900/70 scale-95'
+                      : 'text-red-400 drop-shadow-[0_0_5px_rgba(220,38,38,0.4)]'
+                      }`}
                   >
                     {word}
                   </div>
@@ -248,21 +282,21 @@ export default function WordFinder() {
             )}
           </AnimatePresence>
 
-          <Link 
+          <Link
             to={
               isWon &&
-              localStorage.getItem('game_rotate_puzzle_completed') === 'true' &&
-              localStorage.getItem('game_sequence_memory_completed') === 'true' &&
-              localStorage.getItem('game_word_finder_completed') === 'true'
+                localStorage.getItem('game_rotate_puzzle_completed') === 'true' &&
+                localStorage.getItem('game_sequence_memory_completed') === 'true' &&
+                localStorage.getItem('game_word_finder_completed') === 'true'
                 ? '/hawkins'
                 : '/upside-down'
             }
             className="inline-block px-10 py-4 border-2 border-red-800/80 text-red-500 hover:bg-red-900/30 hover:text-red-400 hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] hover:border-red-600 transition-all duration-300 rounded uppercase tracking-widest font-bold bg-black/50"
           >
             {isWon &&
-             localStorage.getItem('game_rotate_puzzle_completed') === 'true' &&
-             localStorage.getItem('game_sequence_memory_completed') === 'true' &&
-             localStorage.getItem('game_word_finder_completed') === 'true'
+              localStorage.getItem('game_rotate_puzzle_completed') === 'true' &&
+              localStorage.getItem('game_sequence_memory_completed') === 'true' &&
+              localStorage.getItem('game_word_finder_completed') === 'true'
               ? 'Enter Hawkins'
               : (isWon ? 'Return to Reality' : 'Go Back')}
           </Link>

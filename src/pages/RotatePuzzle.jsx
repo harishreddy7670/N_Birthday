@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { playRotateSound, playVictorySound } from '../utils/audio';
+
 
 const GRID_SIZE = 5;
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
@@ -9,6 +11,9 @@ const IMAGE_URL = '/images/puzzle.jpeg';
 export default function RotatePuzzle() {
   const [tiles, setTiles] = useState([]);
   const [isSolved, setIsSolved] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('sound_enabled') !== 'false';
+  });
 
   useEffect(() => {
     // Initialize tiles with random rotations (0, 90, 180, 270 degrees)
@@ -36,13 +41,20 @@ export default function RotatePuzzle() {
       const solved = tiles.every((tile) => tile.currentRotation % 360 === 0);
       if (solved) {
         setIsSolved(true);
+        if (soundEnabled) {
+          playVictorySound();
+        }
         localStorage.setItem('game_rotate_puzzle_completed', 'true');
       }
     }
-  }, [tiles]);
+  }, [tiles, soundEnabled]);
 
   const handleTileClick = (id) => {
     if (isSolved) return;
+
+    if (soundEnabled) {
+      playRotateSound();
+    }
 
     setTiles((prevTiles) =>
       prevTiles.map((tile) =>
@@ -55,6 +67,28 @@ export default function RotatePuzzle() {
 
   return (
     <div className="min-h-screen bg-black text-red-500 font-cinzel flex flex-col items-center justify-center p-4 md:p-8 selection:bg-red-900 selection:text-white relative overflow-hidden">
+      
+      {/* Sound Toggle Button */}
+      <button
+        onClick={() => {
+          const newSound = !soundEnabled;
+          setSoundEnabled(newSound);
+          localStorage.setItem('sound_enabled', String(newSound));
+        }}
+        className="absolute top-6 right-6 z-30 p-3 rounded-full border border-red-800/60 bg-black/50 text-red-500 hover:text-red-400 hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all duration-300 backdrop-blur-sm focus:outline-none"
+        title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
+      >
+        {soundEnabled ? (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+          </svg>
+        )}
+      </button>
+
       {/* Background ambient effect */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/10 via-black to-black opacity-80 z-0"></div>
 
