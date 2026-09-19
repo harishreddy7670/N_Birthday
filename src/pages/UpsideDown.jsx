@@ -52,7 +52,7 @@ export default function UpsideDown() {
         className="relative z-20 text-center flex flex-col items-center w-full max-w-6xl px-4"
       >
         <h1 className="font-cinzel text-3xl sm:text-5xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-400 to-blue-800 text-glow-blue uppercase tracking-widest mb-6 rotate-180 drop-shadow-2xl px-2">
-          Happy Birthday
+          Happy Birthday NASH
         </h1>
         <p className="text-sm sm:text-base md:text-2xl text-blue-200/80 font-mono tracking-wider rotate-180 max-w-lg px-4 mb-16 sm:mb-20">
           Things might look a little different here... but the party is just getting started.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -164,8 +164,54 @@ const GALLERY_IMAGES = [
     defaultStyle: "neon",
     date: "Phase 10",
     caption: "The gate is sealed. Nispriha and the gang celebrate another victory in Hawkins."
+  },
+  {
+    id: 19,
+    src: "/images/new_image.jpg",
+    title: "A New Hawkins Memory",
+    category: "moments",
+    defaultStyle: "polaroid",
+    date: "May 2026",
+    caption: "A newly discovered memory from the Hawkins archives."
   }
 ];
+
+const LETTER_PARAGRAPHS = [
+  "Happy Birthday! ❤️",
+  "I don't know where to start because there are so many memories I could write about, but when I think about our friendship, I mostly think about all those random moments that somehow became some of my favorite memories.",
+  "College gave us a lot of good memories. All those times we went out, roamed around, sat in cafés, talked about random things, and just enjoyed being together — those moments were simple, but they were special.",
+  "And then there was our Sanchi trip. Me, you, Anika ,Siddharth and Mahendra going in the car together... honestly, that is one of those trips I'll always remember. 😂 The whole trip, the random conversations, the fun we had — everything about it was memorable.",
+  "I can never forget that night when we went to Bansal, ended up playing in the kids' area like actual kids, took so many photos, and then went to VIP Road. 😂 It was such a random night, but those are exactly the kind of memories that stay with you.",
+  "And one thing I genuinely don't think I'll ever forget is you coming to the hostel to celebrate my birthday. You didn't have to, but you came and made that day more special for me. That's something I'll always remember and appreciate.",
+  "Then there were all those shooting and paintball days — basically, whenever we got an opportunity to do something fun, we somehow ended up doing it. 😂",
+  "But beyond all these memories, there is something I value even more about you.",
+  "You have always been there.",
+  "Whether it was replying to my messages, picking up my calls, listening to me, — you were always there. And especially after I came to Hyderabad, when I was going through a low phase, you were there for me. You might not even realize how much that meant to me, but I genuinely appreciate it.",
+  "Looking back, I realize that friendship isn't always about doing something extraordinary. Sometimes it's just about having someone who stays, someone who responds, someone who listens, and someone with whom even the most random day becomes a good memory.",
+  "I'm really grateful that college gave me a friend like you.",
+  "I hope this birthday brings you everything you've been hoping for — lots of happiness, beautiful experiences, good people around you, and plenty of reasons to smile.",
+  "And I hope we continue making stupid, random, unforgettable memories for many more years. ❤️",
+  "Happy Birthday once again!",
+  "Stay the same amazing person you are."
+];
+
+const LETTER_TEXT = LETTER_PARAGRAPHS.join('\n\n');
+const SIGNATURE_TEXT = '— With love, Harish';
+
+function WritingPen({ className }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className={className}
+    >
+      <path d="M4 20l3.2-.8L19.5 6.9l-2.4-2.4L4.8 16.8 4 20z" fill="#b91c1c" stroke="#450a0a" strokeWidth="1" />
+      <path d="M17.1 4.5l1.2-1.2a1.7 1.7 0 0 1 2.4 2.4l-1.2 1.2-2.4-2.4z" fill="#ef4444" stroke="#450a0a" strokeWidth="1" />
+      <path d="M4 20l.8-3.2L7.2 19.2 4 20z" fill="#fca5a5" stroke="#450a0a" strokeWidth="1" />
+      <path d="M7.2 16.8l7.9-7.9" stroke="#fca5a5" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+    </svg>
+  );
+}
 
 export default function Hawkins() {
   const [particles, setParticles] = useState([]);
@@ -177,6 +223,10 @@ export default function Hawkins() {
   const [lightboxStyle, setLightboxStyle] = useState('normal');
   const [envelopeOpen, setEnvelopeOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [letterProgress, setLetterProgress] = useState(0);
+  const [signatureProgress, setSignatureProgress] = useState(0);
+  const letterScrollRef = useRef(null);
+  const shouldAutoScrollLetter = useRef(true);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
@@ -184,6 +234,64 @@ export default function Hawkins() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    shouldAutoScrollLetter.current = true;
+    setLetterProgress(0);
+    setSignatureProgress(0);
+    if (!envelopeOpen) return undefined;
+
+    let writingTimer;
+    const startWriting = window.setTimeout(() => {
+      writingTimer = window.setInterval(() => {
+        setLetterProgress((currentProgress) => {
+          if (currentProgress >= LETTER_TEXT.length) {
+            window.clearInterval(writingTimer);
+            return LETTER_TEXT.length;
+          }
+          return currentProgress + 1;
+        });
+      }, 90);
+    }, 850);
+
+    return () => {
+      window.clearTimeout(startWriting);
+      if (writingTimer) window.clearInterval(writingTimer);
+    };
+  }, [envelopeOpen]);
+
+  useEffect(() => {
+    if (!envelopeOpen || letterProgress < LETTER_TEXT.length) return undefined;
+
+    let signatureTimer;
+    const startWriting = window.setTimeout(() => {
+      signatureTimer = window.setInterval(() => {
+        setSignatureProgress((currentProgress) => {
+          if (currentProgress >= SIGNATURE_TEXT.length) {
+            window.clearInterval(signatureTimer);
+            return SIGNATURE_TEXT.length;
+          }
+          return currentProgress + 1;
+        });
+      }, 115);
+    }, 900);
+
+    return () => {
+      window.clearTimeout(startWriting);
+      if (signatureTimer) window.clearInterval(signatureTimer);
+    };
+  }, [envelopeOpen, letterProgress]);
+
+  useEffect(() => {
+    if (!letterScrollRef.current || !envelopeOpen || !shouldAutoScrollLetter.current) return;
+    letterScrollRef.current.scrollTop = letterScrollRef.current.scrollHeight;
+  }, [envelopeOpen, letterProgress]);
+
+  const handleLetterScroll = () => {
+    if (!letterScrollRef.current) return;
+    const { scrollHeight, scrollTop, clientHeight } = letterScrollRef.current;
+    shouldAutoScrollLetter.current = scrollHeight - scrollTop - clientHeight <= 8;
+  };
   const [customFilters, setCustomFilters] = useState({
     brightness: 100,
     contrast: 100,
@@ -400,38 +508,9 @@ export default function Hawkins() {
             {/* Retro grid pattern inside console */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,0,0,0.02)_1px,transparent_1px)] bg-[size:20px_20px] rounded-3xl pointer-events-none" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch relative z-10">
-              {/* Left Column: Frequency Receiver */}
-              <div className="flex flex-col space-y-4 bg-black/40 p-5 rounded-2xl border border-red-950/30">
-                <h4 className="text-xs md:text-sm font-bold text-red-500 tracking-[0.25em] uppercase flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(220,38,38,1)]" />
-                  Frequency Receiver (Category)
-                </h4>
-                <p className="text-xs text-gray-500 font-sans leading-tight">
-                  Tuning in to different spectral layers of the memory sphere.
-                </p>
-                <div className="flex flex-wrap gap-2.5 pt-2">
-                  {[
-                    { id: 'all', label: 'All Frequencies' },
-                    { id: 'moments', label: 'Birthday Highlights' },
-                    { id: 'games', label: 'Decrypted Archives' }
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={`px-4 py-2.5 rounded-xl font-sans text-xs md:text-sm tracking-wider uppercase border transition-all duration-300 cursor-pointer ${activeCategory === cat.id
-                        ? 'bg-red-950/60 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)] font-bold'
-                        : 'bg-black/60 border-gray-900 text-gray-500 hover:border-gray-800 hover:text-gray-300'
-                        }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Column: Reality Modulator */}
-              <div className="flex flex-col space-y-4 bg-black/40 p-5 rounded-2xl border border-red-950/30">
+            <div className="relative z-10">
+              {/* Reality Modulator */}
+              <div className="flex flex-col space-y-4 bg-black/40 p-5 md:p-6 rounded-2xl border border-red-950/30">
                 <h4 className="text-xs md:text-sm font-bold text-cyan-400 tracking-[0.25em] uppercase flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,1)]" />
                   Reality Modulator (Style)
@@ -1152,32 +1231,32 @@ export default function Hawkins() {
               }`}
             >
               <div className="flex flex-col space-y-2 select-none overflow-hidden h-[80%]">
-                <h4 className="text-xs md:text-sm font-bold text-red-700 font-serif border-b border-red-200 pb-1 flex justify-between items-center">
-                  <span>Dearest Nispriha,</span>
-                  <span className="text-[9px] text-gray-400 font-mono">2026.09.30</span>
+                <h4 className="text-base md:text-lg font-bold text-red-700 font-handwritten border-b border-red-200 pb-1 flex justify-between items-center">
+                  <span>Dear Nispriha,</span>
+                  <span className="text-sm text-gray-400 font-mono">2026.09.30</span>
                 </h4>
 
                 {/* Scrollable elegant content box */}
-                <div className="overflow-y-auto pr-1 flex flex-col space-y-2 text-[10px] md:text-xs leading-relaxed text-slate-700 font-sans tracking-wide scrollbar-thin max-h-[125px] sm:max-h-[155px] md:max-h-[185px]">
-                  <p className="font-semibold text-red-600/90 text-[11px] md:text-xs animate-pulse">
-                    Happiest Birthday to a true Hawkins Champion! 🎂✨
-                  </p>
-
-                  <p>
-                    Happy Birthday to the girl who makes every moment brighter ✨
-                    You deserve all the happiness, success, love, and laughter in the world today and always. Thank you for being such an amazing friend, for all the memories, the endless talks, and the support you give without even realizing it.
-
-                    I hope this year brings you beautiful surprises, crazy adventures, peaceful moments, and everything your heart wishes for. Keep smiling, keep shining, and never change the wonderful person you are. 💖
-
-                    Today is all about you — enjoy every second of it.
-                    Happy Birthday once again! 🎂🎉
+                <div ref={letterScrollRef} onScroll={handleLetterScroll} className="overflow-y-auto pr-1 text-sm md:text-base leading-relaxed text-slate-700 font-handwritten tracking-normal scrollbar-thin max-h-[125px] sm:max-h-[155px] md:max-h-[185px]">
+                  <p className="whitespace-pre-line">
+                    {LETTER_TEXT.slice(0, letterProgress)}
+                    {envelopeOpen && letterProgress < LETTER_TEXT.length && (
+                      <WritingPen className="inline-block ml-1 h-5 w-5 -rotate-[28deg] align-middle drop-shadow-[1px_1px_2px_rgba(127,29,29,0.55)] animate-pulse" />
+                    )}
                   </p>
                 </div>
               </div>
 
               <div className="flex justify-between items-end border-t border-stone-200 pt-2 select-none font-mono text-[9px] md:text-[10px]">
                 <span className="text-[8px] text-stone-400 uppercase tracking-widest">Dimension: Hawkins-3</span>
-                <span className="text-xs font-bold text-red-600 font-serif italic">— With love, Harish ❤️</span>
+                {letterProgress >= LETTER_TEXT.length && (
+                  <span className="relative inline-flex items-center text-base md:text-lg font-bold text-red-600 font-handwritten italic min-w-[145px]">
+                    {SIGNATURE_TEXT.slice(0, signatureProgress)}
+                    {envelopeOpen && signatureProgress < SIGNATURE_TEXT.length && (
+                      <WritingPen className="ml-1 h-6 w-6 -rotate-[28deg] drop-shadow-[1px_1px_2px_rgba(127,29,29,0.55)] animate-pulse" />
+                    )}
+                  </span>
+                )}
               </div>
             </motion.div>
 
@@ -1231,7 +1310,7 @@ export default function Hawkins() {
                 {envelopeOpen ? (
                   <span className="text-yellow-400 font-sans text-xs md:text-sm font-black select-none tracking-tighter">CLOSE</span>
                 ) : (
-                  <span className="text-yellow-400 font-sans text-xs md:text-sm font-black select-none tracking-widest">H</span>
+                  <span className="text-yellow-400 font-sans text-xs md:text-sm font-black select-none tracking-widest">OPEN</span>
                 )}
               </div>
             </motion.div>

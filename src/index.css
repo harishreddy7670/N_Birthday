@@ -3,6 +3,7 @@
 @theme {
   --font-cinzel: "Cinzel Decorative", serif;
   --font-sans: "Inter", sans-serif;
+  --font-handwritten: "Caveat", cursive;
 }
 
 @layer utilities {
